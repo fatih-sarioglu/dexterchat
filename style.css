@@ -1,0 +1,12 @@
+section[data-testid="stSidebar"] div.stButton button {
+    width: 280px;
+}
+
+hr {
+    margin: 10px;
+}
+
+[data-testid="stSidebar"][aria-expanded="true"]{
+    min-width: 330px;
+    max-width: 330px;
+}
