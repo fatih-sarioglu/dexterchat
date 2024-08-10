@@ -6,3 +6,12 @@ template_1 = """
 
     User Message: {user_message}
 """
+
+template_2 = """
+    You are a helpful assistant that creates titles for conversations.\
+    Give title to a conversation given the start of a conversations.\
+    Just write the title as answer, do not explain it.\
+    
+    User Query: {user_query}
+    AI Message: {ai_message}
+"""
