@@ -37,7 +37,7 @@ def get_chat_headers():
     return chat_headers
 
 def create_new_chat(title):
-    st.session_state.current_chat_id
+    # can be removed
     try:
         st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
     except Exception as e:
@@ -65,7 +65,7 @@ def save_chat_history(chat_id, messages):
     })
 
 
-def load_page(chat_id):
+def load_recent_chats(chat_id):
     st.session_state.current_chat_id = chat_id
     chat_history = client.chat_history.chat_bodies.find_one({"id": st.session_state.current_chat_id})
     if chat_history is not None:
@@ -73,12 +73,18 @@ def load_page(chat_id):
         
         for idx, message in enumerate(st.session_state.chat_history):
             if idx % 2 == 0:
-                with st.chat_message("You", ):
+                with st.chat_message("You"):
                     st.markdown(message)
             else:
                 with st.chat_message("assistant"):
                     st.markdown(message)
 
+def new_chat_button():
+    st.session_state.chat_history = []  
+    try:
+        st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
+    except Exception as e:
+        print(e)
 
 # get response from the GPT
 def get_response(query, chat_history):
@@ -100,7 +106,7 @@ def generate_chat_header(conversation):
     chat_prompt = PromptTemplate.from_template(template_2)
 
     llm = ChatOpenAI(
-        temperature=0.2,
+        temperature=0.8,
         model="gpt-4o-mini"
     )
 
@@ -116,36 +122,47 @@ def generate_chat_header(conversation):
 with st.sidebar:
     st.title("DexterChat")
     st.write("DexterChat is a chatbot that helps users with their queries.")
-    st.button("New Chat", type='primary')
+    st.button("New Chat", type='primary', on_click=new_chat_button)
 
     st.divider()
     st.header("Recent Conversations")
 
-    for header in get_chat_headers():
+    for header in get_chat_headers().sort('id', -1):
         st.button(label=header["title"],
                   key=header["id"],
-                  on_click=load_page,
+                  on_click=load_recent_chats,
                   args=(header["id"],))
 
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+if "current_chat_id" not in st.session_state:
+    try:
+        st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
+    except Exception as e:
+        print(e)
+
 # chat input
 user_message = st.chat_input("Ask something")
 if user_message is not None and user_message != "":
+    load_recent_chats(st.session_state.current_chat_id)
+    print("before", st.session_state.chat_history)
     with st.chat_message("You"):
-        st.markdown(user_message)
+        st.session_state.user_message_wrapper = st.markdown(user_message)
     st.session_state.chat_history.append(user_message)
 
     with st.chat_message("assistant"):
-        ai_message = st.write_stream(get_response(user_message, st.session_state.chat_history))
-    st.session_state.chat_history.append(ai_message)
+        st.session_state.ai_message = st.write_stream(get_response(user_message, st.session_state.chat_history))
+    st.session_state.chat_history.append(st.session_state.ai_message)
 
+    print("after", st.session_state.chat_history)
 
     # create new chat header
     if len(st.session_state.chat_history) == 2:
         create_new_chat(generate_chat_header(st.session_state.chat_history))
-
-    # save chat history
-    save_chat_history(st.session_state.current_chat_id, st.session_state.chat_history)
+        save_chat_history(st.session_state.current_chat_id, st.session_state.chat_history)
+        st.rerun(scope="app")
+    else:
+        # save chat history
+        save_chat_history(st.session_state.current_chat_id, st.session_state.chat_history)
