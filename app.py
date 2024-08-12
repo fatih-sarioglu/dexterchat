@@ -11,6 +11,17 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 
+def read_cache() -> bool:
+    """
+    Read the cache file and return the value"""
+    with open("app_cache.txt", "r") as f:
+        return f.read() == "1"
+
+def write_cache(value: bool):
+    """
+    Write the value to the cache file"""
+    with open("app_cache.txt", "w") as f:
+        f.write("1" if value else "0")
 
 # load environment variables
 load_dotenv()
@@ -64,6 +75,10 @@ def save_chat_history(chat_id, messages):
         }
     })
 
+def delete_chat(chat_id: int) -> None:
+    client.chat_history.chat_headers.delete_one({"id": chat_id})
+    client.chat_history.chat_bodies.delete_one({"id": chat_id})
+
 
 def load_recent_chats(chat_id):
     st.session_state.current_chat_id = chat_id
@@ -85,6 +100,15 @@ def new_chat_button():
         st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
     except Exception as e:
         print(e)
+
+def delete_chat_button():
+    delete_chat(st.session_state.current_chat_id)
+    st.session_state.chat_history = []
+    try:
+        st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
+    except Exception as e:
+        print(e)
+        
 
 # get response from the GPT
 def get_response(query, chat_history):
@@ -123,6 +147,7 @@ with st.sidebar:
     st.title("DexterChat")
     st.write("DexterChat is a chatbot that helps users with their queries.")
     st.button("New Chat", type='primary', on_click=new_chat_button)
+    st.button("Delete Chat", type='secondary', on_click=delete_chat_button)
 
     st.divider()
     st.header("Recent Conversations")
@@ -133,6 +158,13 @@ with st.sidebar:
                   on_click=load_recent_chats,
                   args=(header["id"],))
 
+def set_session_state_after_new_chat() -> None:
+    if read_cache():
+        st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id']
+        load_recent_chats(st.session_state.current_chat_id)
+        write_cache(False)
+        
+set_session_state_after_new_chat()
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -162,6 +194,7 @@ if user_message is not None and user_message != "":
     if len(st.session_state.chat_history) == 2:
         create_new_chat(generate_chat_header(st.session_state.chat_history))
         save_chat_history(st.session_state.current_chat_id, st.session_state.chat_history)
+        write_cache(True)
         st.rerun(scope="app")
     else:
         # save chat history
