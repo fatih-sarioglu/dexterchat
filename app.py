@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from prompts import template_1, template_2
 
 from pymongo import MongoClient
+from pymongo.cursor import Cursor
 
 from dotenv import load_dotenv
 import os
@@ -33,7 +34,7 @@ st.set_page_config(page_title="DexterChat", page_icon="🤖", initial_sidebar_st
 
 
 # custom styling
-def local_css(file_name):
+def local_css(file_name: str) -> None:
     with open(file_name) as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
@@ -42,12 +43,12 @@ local_css("style.css")
 # connect to database
 client = MongoClient(mongo_uri)
 
-def get_chat_headers():
+def get_chat_headers() -> Cursor:
     chat_headers = client.chat_history.chat_headers.find()
 
     return chat_headers
 
-def create_new_chat(title):
+def create_new_chat(title: str) -> None:
     # can be removed
     try:
         st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
@@ -64,7 +65,7 @@ def create_new_chat(title):
         "messages": []
     })
 
-def save_chat_history(chat_id, messages):
+def save_chat_history(chat_id: int, messages: list) -> None:
     client.chat_history.chat_bodies.update_one(
     {
         "id": chat_id
@@ -80,7 +81,7 @@ def delete_chat(chat_id: int) -> None:
     client.chat_history.chat_bodies.delete_one({"id": chat_id})
 
 
-def load_recent_chats(chat_id):
+def load_recent_chats(chat_id: int) -> None:
     st.session_state.current_chat_id = chat_id
     chat_history = client.chat_history.chat_bodies.find_one({"id": st.session_state.current_chat_id})
     if chat_history is not None:
@@ -94,14 +95,14 @@ def load_recent_chats(chat_id):
                 with st.chat_message("assistant"):
                     st.markdown(message)
 
-def new_chat_button():
+def new_chat_button() -> None:
     st.session_state.chat_history = []  
     try:
         st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
     except Exception as e:
         print(e)
 
-def delete_chat_button():
+def delete_chat_button() -> None:
     delete_chat(st.session_state.current_chat_id)
     st.session_state.chat_history = []
     try:
@@ -111,7 +112,7 @@ def delete_chat_button():
         
 
 # get response from the GPT
-def get_response(query, chat_history):
+def get_response(query, chat_history) -> str:
     chat_prompt = PromptTemplate.from_template(template_1)
 
     llm = ChatOpenAI(
@@ -126,7 +127,7 @@ def get_response(query, chat_history):
         "user_message": query
     })
 
-def generate_chat_header(conversation):
+def generate_chat_header(conversation: list) -> str:
     chat_prompt = PromptTemplate.from_template(template_2)
 
     llm = ChatOpenAI(
