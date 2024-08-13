@@ -180,7 +180,7 @@ if "current_chat_id" not in st.session_state:
 user_message = st.chat_input("Ask something")
 if user_message is not None and user_message != "":
     load_recent_chats(st.session_state.current_chat_id)
-    print("before", st.session_state.chat_history)
+    
     with st.chat_message("You"):
         st.session_state.user_message_wrapper = st.markdown(user_message)
     st.session_state.chat_history.append(user_message)
@@ -188,8 +188,6 @@ if user_message is not None and user_message != "":
     with st.chat_message("assistant"):
         st.session_state.ai_message = st.write_stream(get_response(user_message, st.session_state.chat_history))
     st.session_state.chat_history.append(st.session_state.ai_message)
-
-    print("after", st.session_state.chat_history)
 
     # create new chat header
     if len(st.session_state.chat_history) == 2:
