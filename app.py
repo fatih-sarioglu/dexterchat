@@ -112,7 +112,7 @@ def delete_chat_button() -> None:
         
 
 # get response from the GPT
-def get_response(query, chat_history) -> str:
+def get_response(query: str, chat_history: list) -> str:
     chat_prompt = PromptTemplate.from_template(template_1)
 
     llm = ChatOpenAI(
@@ -149,6 +149,9 @@ with st.sidebar:
     st.write("DexterChat is a chatbot that helps users with their queries.")
     st.button("New Chat", type='primary', on_click=new_chat_button)
     st.button("Delete Chat", type='secondary', on_click=delete_chat_button)
+
+    st.file_uploader(label='', label_visibility='collapsed')
+
 
     st.divider()
     st.header("Recent Conversations")
