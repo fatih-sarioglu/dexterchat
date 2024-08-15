@@ -12,6 +12,9 @@ from pymongo.cursor import Cursor
 from dotenv import load_dotenv
 import os
 
+from io import StringIO
+
+
 def read_cache() -> bool:
     """
     Read the cache file and return the value"""
@@ -142,6 +145,8 @@ def generate_chat_header(conversation: list) -> str:
         "ai_message": conversation[1]
     })
 
+def click_button() -> None:
+    print(string_data[:100])
 
 # sidebar
 with st.sidebar:
@@ -150,7 +155,13 @@ with st.sidebar:
     st.button("New Chat", type='primary', on_click=new_chat_button)
     st.button("Delete Chat", type='secondary', on_click=delete_chat_button)
 
-    st.file_uploader(label='', label_visibility='collapsed')
+    uploaded_file = st.file_uploader(label='Upload a file', label_visibility='collapsed')
+
+    if uploaded_file is not None:
+        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        string_data = stringio.read()
+        
+    st.button("Print File", type='secondary', on_click=click_button)
 
 
     st.divider()
