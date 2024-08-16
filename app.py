@@ -100,18 +100,20 @@ def load_recent_chats(chat_id: int) -> None:
 
 def new_chat_button() -> None:
     st.session_state.chat_history = []  
+    st.session_state.uploaded_file = None
     try:
         st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
     except Exception as e:
         print(e)
 
 def delete_chat_button() -> None:
-    delete_chat(st.session_state.current_chat_id)
-    st.session_state.chat_history = []
-    try:
-        st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
-    except Exception as e:
-        print(e)
+    if st.session_state.current_chat_id is not None:
+        delete_chat(st.session_state.current_chat_id)
+        st.session_state.chat_history = []
+        try:
+            st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id'] + 1
+        except Exception as e:
+            print(e)
         
 
 # get response from the GPT
@@ -148,30 +150,6 @@ def generate_chat_header(conversation: list) -> str:
 def click_button() -> None:
     print(string_data[:100])
 
-# sidebar
-with st.sidebar:
-    st.title("DexterChat")
-    st.write("DexterChat is a chatbot that helps users with their queries.")
-    st.button("New Chat", type='primary', on_click=new_chat_button)
-    st.button("Delete Chat", type='secondary', on_click=delete_chat_button)
-
-    uploaded_file = st.file_uploader(label='Upload a file', label_visibility='collapsed')
-
-    if uploaded_file is not None:
-        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-        string_data = stringio.read()
-        
-    st.button("Print File", type='secondary', on_click=click_button)
-
-
-    st.divider()
-    st.header("Recent Conversations")
-
-    for header in get_chat_headers().sort('id', -1):
-        st.button(label=header["title"],
-                  key=header["id"],
-                  on_click=load_recent_chats,
-                  args=(header["id"],))
 
 def set_session_state_after_new_chat() -> None:
     if read_cache():
@@ -190,7 +168,60 @@ if "current_chat_id" not in st.session_state:
     except Exception as e:
         print(e)
 
-# chat input
+# def after_file_upload() -> None:
+#     load_recent_chats(st.session_state.current_chat_id)
+
+# sidebar
+with st.sidebar:
+    st.title("DexterChat")
+    st.write("DexterChat is a chatbot that helps users with their queries.")
+    st.button("New Chat", type='primary', on_click=new_chat_button)
+    st.button("Delete Chat", type='secondary', on_click=delete_chat_button)
+
+    with st.form("my-form", clear_on_submit=True):
+        try:
+            st.session_state.uploaded_file = st.file_uploader(label="Upload a file",
+                                                            label_visibility='visible',
+                                                            disabled=False if len(st.session_state.chat_history) != 0 else True,
+                                                            help="You need to start a chat to upload a file")
+        except AttributeError:
+            st.session_state.uploaded_file = None
+
+        submitted = st.form_submit_button(label="Submit",
+                                          on_click=load_recent_chats,
+                                          args=(st.session_state.current_chat_id,),
+                                          type='primary')
+
+    # try:
+    #     st.session_state.uploaded_file = st.file_uploader(label="Upload a file",
+    #                                                     label_visibility='visible',
+    #                                                     disabled=False if len(st.session_state.chat_history) != 0 else True,
+    #                                                     on_change=load_recent_chats,
+    #                                                     args=(st.session_state.current_chat_id,),
+    #                                                     help="You need to start a chat to upload a file")
+    # except AttributeError:
+    #     st.session_state.uploaded_file = None
+
+    if st.session_state.uploaded_file is not None:
+        stringio = StringIO(st.session_state.uploaded_file.getvalue().decode("utf-8"))
+        string_data = stringio.read()
+        st.toast("File uploaded successfully")
+        st.session_state.uploaded_file = None
+
+        
+    #st.button("Print File", type='secondary', on_click=click_button)
+
+
+    st.divider()
+    st.header("Recent Conversations")
+
+    for header in get_chat_headers().sort('id', -1):
+        st.button(label=header["title"],
+                  key=header["id"],
+                  on_click=load_recent_chats,
+                  args=(header["id"],))
+
+# chat page
 user_message = st.chat_input("Ask something")
 if user_message is not None and user_message != "":
     load_recent_chats(st.session_state.current_chat_id)
