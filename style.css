@@ -11,10 +11,6 @@ hr {
     max-width: 330px;
 }
 
-section[data-testid="stSidebar"] div[data-testid="stFormSubmitButton"] button {
-    width: 245px;
-}
-
 h1 {
     padding-top: 0px;
 }
