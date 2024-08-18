@@ -12,18 +12,6 @@ from dotenv import load_dotenv
 import os
 
 
-def read_cache() -> bool:
-    """
-    Read the cache file and return the value"""
-    with open("app_cache.txt", "r") as f:
-        return f.read() == "1"
-
-def write_cache(value: bool) -> None:
-    """
-    Write the value to the cache file"""
-    with open("app_cache.txt", "w") as f:
-        f.write("1" if value else "0")
-
 # load environment variables
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
@@ -152,13 +140,17 @@ def generate_chat_header(conversation: list) -> str:
 
 # set session state after new chat
 def set_session_state_after_new_chat() -> None:
-    if read_cache():
+    if st.session_state.new_chat:
         st.session_state.current_chat_id = client.chat_history.chat_headers.find().sort('id', -1).limit(1)[0]['id']
         load_recent_chats(st.session_state.current_chat_id)
-        write_cache(False)
+        st.session_state.new_chat = False
         
-set_session_state_after_new_chat()
 
+# initialize session state
+if "new_chat" not in st.session_state:
+    st.session_state.new_chat = False
+
+set_session_state_after_new_chat()
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -187,6 +179,7 @@ with st.sidebar:
                   on_click=load_recent_chats,
                   args=(header["id"],))
 
+
 # chat page
 user_message = st.chat_input("Ask something")
 if user_message is not None and user_message != "":
@@ -205,7 +198,7 @@ if user_message is not None and user_message != "":
         # create new chat
         create_new_chat(generate_chat_header(st.session_state.chat_history))
         save_chat_history(st.session_state.current_chat_id, st.session_state.chat_history)
-        write_cache(True)
+        st.session_state.new_chat = True
         st.rerun(scope="app")
     else:
         # save chat history
