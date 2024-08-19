@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION=3.11.9
-FROM python:${PYTHON_VERSION}-slim as base
+FROM python:${PYTHON_VERSION}-slim AS base
 
 RUN apt-get update && apt-get install -y \
     build-essential \
